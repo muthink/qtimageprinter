@@ -18,9 +18,9 @@ public:
     ~DialogMain();
     
 private slots:
-    void onTimer();
+    void onDirectoryRootPathChanged();
     void on_treeViewDirectories_clicked(const QModelIndex &index);
-
+    void onFileRootPathChanged();
 private:
     bool                m_firstDrawn;
     Ui::DialogMain *ui;

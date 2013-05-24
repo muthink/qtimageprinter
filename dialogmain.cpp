@@ -1,20 +1,18 @@
 #include "dialogmain.h"
 #include "ui_dialogmain.h"
-#include <QtPrintSupport/QPrinterInfo>
+#include <QPrinterInfo>
+//#include <QtPrintSupport/QPrinterInfo>
 #include <QSettings>
 
 DialogMain::DialogMain(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::DialogMain)
 {
-    m_firstDrawn = false;
-    QSettings settings;
     ui->setupUi(this);
-    QString path = settings.value("lastPath", QVariant("")).toString();
+
+    m_firstDrawn = false;
     m_directoryModel = new QFileSystemModel(this);
     m_directoryModel->setFilter(QDir::NoDotAndDotDot|QDir::AllDirs);
-    QModelIndex rootIndex = m_directoryModel->setRootPath("");
-    QModelIndex index = m_directoryModel->index(path,0);
     //ui->treeViewDirectories->setRootIndex(rootIndex);
 
     ui->treeViewDirectories->setModel(m_directoryModel);
@@ -22,21 +20,21 @@ DialogMain::DialogMain(QWidget *parent) :
     ui->treeViewDirectories->hideColumn(2);
     ui->treeViewDirectories->hideColumn(3);
     ui->treeViewDirectories->hideColumn(4);
-    ui->treeViewDirectories->setCurrentIndex(index);
-    ui->treeViewDirectories->scrollTo(index,QTreeView::EnsureVisible);
 
     m_fileModel = new QFileSystemModel(this);
     m_fileModel->setFilter(QDir::NoDotAndDotDot|QDir::Files);
     ui->treeViewSourceFiles->setModel(m_fileModel);
-    ui->treeViewSourceFiles->setRootIndex(m_fileModel->setRootPath(path));
     QList<QPrinterInfo> printers = QPrinterInfo::availablePrinters();
     foreach(QPrinterInfo printer, printers)
         ui->comboBoxFilePrinters->addItem(printer.printerName());
     ui->comboBoxFileTypes->addItem("*.tif");
 
-    ui->treeViewDirectories->scrollTo(index,QTreeView::EnsureVisible);
-    connect(&m_timer, SIGNAL(timeout()), this, SLOT(onTimer()));
-    m_timer.start(1000);
+   // connect(&m_timer, SIGNAL(timeout()), this, SLOT(onTimer()));
+   // m_timer.start(2000);
+    connect(m_directoryModel, SIGNAL(rootPathChanged(QString)),this,SLOT(onDirectoryRootPathChanged()));
+    QModelIndex rootIndex = m_directoryModel->setRootPath("");
+
+    //QTimer::singleShot(0, this, SLOT(onTimer()));
 }
 
 DialogMain::~DialogMain()
@@ -44,11 +42,20 @@ DialogMain::~DialogMain()
     delete ui;
 }
 
-void DialogMain::onTimer()
+void DialogMain::onDirectoryRootPathChanged()
 {
-    m_timer.stop();
-    QModelIndex index = ui->treeViewDirectories->currentIndex();
-    ui->treeViewDirectories->scrollTo(index);
+   // m_timer.stop();
+    QSettings settings;
+
+    QString path = settings.value("lastPath", QVariant("")).toString();
+    QModelIndex index = m_directoryModel->index(path,0);
+    ui->treeViewDirectories->setCurrentIndex(index);
+    ui->treeViewDirectories->scrollTo(index,QAbstractItemView::EnsureVisible);
+    ui->treeViewSourceFiles->setRootIndex(m_fileModel->setRootPath(path));
+}
+
+void DialogMain::onFileRootPathChanged()
+{
     ui->treeViewSourceFiles->setVisible(false);
     ui->treeViewSourceFiles->resizeColumnToContents(0);
     ui->treeViewSourceFiles->setVisible(true);
